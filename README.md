@@ -14,8 +14,8 @@ run test
 
    ### verifier set range
    range.send_to(prover, range)
- ### prover construct commit woth given range
-   # 2 ^ (len-1) < range <  2 ^ len
+ ### prover construct commit with given range
+   ### 2 ^ (len-1) < range <  2 ^ len
    (commit, response) = commit_parameter.proof(secret, commit_parameter) 
    (commit_range_lower bound, response_range_lower bound) = commit_parameter.proof(secret - lower bound, commit_parameter)
    (commit_range_upper bound, response_range_upper bound) = commit_parameter.proof(secret - upper bound + 2^len, commit_parameter)
@@ -27,6 +27,6 @@ run test
    bool2 = verify(commit_range_lower bound, response_range_lower bound)
    bool3 = verify(commit_range_upper bound, response_range_upper bound)
    assert_true(bool1, bool2, bool3)
-![image](https://github.com/user-attachments/assets/7422e3b1-5bcd-4383-a2b8-c9a0f023077c)
+
 
 
