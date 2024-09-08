@@ -51,7 +51,6 @@ pub fn constract_lr_poly(
     (l_poly, r_poly)
 }
 
-
 pub fn inner_product_add (poly1: Vec<pallas::Scalar>, poly2: Vec<pallas::Scalar>) -> pallas::Scalar {
     assert_eq!(poly1.len(), poly2.len(),"poly's len unequal");
     let mut out = pallas::Scalar::zero();
