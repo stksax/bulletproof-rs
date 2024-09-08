@@ -2,6 +2,8 @@ use pasta_curves::{group::{ff::{Field, PrimeField}, Group}, pallas};
 use std::{ops::{Add, Mul}, u128};
 use crate::generator::{to_binary_vec, to_inverse_vec, generator_arbitrary_vec_with_fix_len, GenerateParameter};
 use crate::utils::{extand_exp_vec, inner_product, constract_lr_poly, inner_product_add};
+use rand::{Rng,thread_rng}; 
+
 
 pub struct CommitParameter {
     pub secret_v: u128,
@@ -13,13 +15,16 @@ pub struct CommitParameter {
     pub generate_parameter: GenerateParameter
 }
 
+#[derive(Clone, Debug)]
 pub struct Commit{
+    pub commit_origin: pasta_curves::Ep, 
     pub commit_a: pasta_curves::Ep, 
     pub commit_s: pasta_curves::Ep, 
     pub commit_t1: pasta_curves::Ep, 
     pub commit_t2: pasta_curves::Ep
 }
 
+#[derive(Clone, Debug)]
 pub struct Response {
     pub response_l: Vec<pasta_curves::Fq>,
     pub response_r: Vec<pasta_curves::Fq>,
@@ -35,21 +40,21 @@ impl CommitParameter {
         let h_single_point = self.generate_parameter.h_single_point;
 
         let al = to_binary_vec(self.secret_v, self.len);
-        let ar = to_inverse_vec(al.clone(), self.len);
+        let ar = to_inverse_vec(&al, self.len);
         let alpha = pallas::Scalar::random(rand::rngs::OsRng);
         let commit_a = constract_commit(
-        h_single_point,
-            alpha, 
-            g_vec.clone(),
-            al.clone(),
-            h_vec.clone(), 
-            ar.clone(), 
+        &h_single_point,
+            &alpha, 
+            &g_vec,
+            &al,
+            &h_vec, 
+            &ar, 
             self.len);
         
         let p = pallas::Scalar::random(rand::rngs::OsRng);
         let sl = generator_arbitrary_vec_with_fix_len(self.len);
         let sr = generator_arbitrary_vec_with_fix_len(self.len);
-        let commit_s = constract_commit(h_single_point, p, g_vec.clone(),sl.clone(),h_vec.clone(), sr.clone(), self.len);
+        let commit_s = constract_commit(&h_single_point, &p, &g_vec,&sl, &h_vec, &sr, self.len);
         
         //hash
         let x = self.x;
@@ -57,12 +62,12 @@ impl CommitParameter {
         let z = self.z;
         
 
-        let (l_poly, r_poly) = constract_lr_poly(y.clone(), z.clone(), al.clone(), ar.clone(), sl, sr);
+        let (l_poly, r_poly) = constract_lr_poly(&y, &z, &al, &ar, &sl, &sr);
 
         let generator_point = pallas::Point::generator();
         let vg = generator_point.mul(pallas::Scalar::from_u128(self.secret_v));
         let rh = h_single_point.mul(pallas::Scalar::from_u128(self.secret_r));
-        let commit = vg + rh;
+        let commit_origin = vg + rh;
         let poly_t = inner_product(l_poly.clone(), r_poly.clone());
 
         let exp_1_vec = extand_exp_vec(pallas::Scalar::one(), self.len);
@@ -90,6 +95,7 @@ impl CommitParameter {
         let response_u = alpha + p * x;
         
         let commit: Commit = Commit {
+            commit_origin,
             commit_a,
             commit_s,
             commit_t1,
@@ -106,16 +112,57 @@ impl CommitParameter {
 
         (commit, response)
     }
+
+    fn new_lower_and_higher_commit(&self, low: u128, high: u128) -> (CommitParameter, CommitParameter) {
+        let mut rng = thread_rng();
+        let low_commit = CommitParameter {
+            secret_v: self.secret_v - low,
+            secret_r: self.secret_r,
+            x: self.x,
+            y: self.y,
+            z: self.z,
+            len: self.len,
+            generate_parameter: self.generate_parameter.clone(), 
+        };
+        println!("{:?}",low_commit.secret_v);
+    
+        let exp2 = (1u128 << self.len) as u128; 
+        let high_commit = CommitParameter {
+            secret_v: exp2 + self.secret_v - high,
+            secret_r: self.secret_r,
+            x: self.x,
+            y: self.y,
+            z: self.z,
+            len: self.len,
+            generate_parameter: self.generate_parameter.clone(), 
+        };
+    
+        (low_commit, high_commit)
+    }
+    
+    pub fn range_proof(&self, low: u128, high: u128) -> (Vec<Commit>, Vec<Response>, u128, u128) {
+        let (commit, response) = self.proof();
+        
+        let (low_commit_para, high_commit_para) = self.new_lower_and_higher_commit(low, high);
+        
+        let (low_commit, low_response) = low_commit_para.proof();
+        let (high_commit, high_response) = high_commit_para.proof();
+        
+        let commits = vec![commit, low_commit, high_commit];
+        let responses = vec![response, low_response, high_response];
+        
+        (commits, responses, low, high)
+    }    
 }
 
-//rm pub
-pub fn constract_commit(
-    point_single: pallas::Point, 
-    scalar_single: pallas::Scalar, 
-    point_vec1: Vec<pallas::Point>,
-    scalar_vec1: Vec<pallas::Scalar>,
-    point_vec2: Vec<pallas::Point>,
-    scalar_vec2: Vec<pallas::Scalar>,
+
+fn constract_commit(
+    point_single: &pallas::Point, 
+    scalar_single: &pallas::Scalar, 
+    point_vec1: &Vec<pallas::Point>,
+    scalar_vec1: &Vec<pallas::Scalar>,
+    point_vec2: &Vec<pallas::Point>,
+    scalar_vec2: &Vec<pallas::Scalar>,
     len:usize
 ) -> pallas::Point {
     assert_eq!(point_vec1.len(), point_vec2.len(),"poly's len unequal");

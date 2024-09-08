@@ -34,29 +34,19 @@ mod tests{
             generate_parameter: generate_parameter.clone()
         };
 
-        let g_vec = generate_parameter.g_vec;
-        let h_vec = generate_parameter.h_vec;
-        let h_single_point = generate_parameter.h_single_point;
-
         let (commit, response) = commit_parameter.proof();
 
-
-        let generator_point = pallas::Point::generator();
-        let vg = generator_point.mul(pallas::Scalar::from_u128(secret));
-        let rh = h_single_point.mul(pallas::Scalar::from_u128(random_r));
-        let commit_origin = vg.add(rh);
-
         let verify_parameter = VerifyParameter{ 
-            commit_origin: commit_origin,
+            commit_origin: commit.commit_origin,
             commit: commit,
             response: response,
             x: x, 
-            g_vec: g_vec,
+            g_vec: generate_parameter.g_vec,
             z: z, 
-            h_vec: h_vec,
+            h_vec: generate_parameter.h_vec,
             y: y, 
             len: 7,
-            h_single_point: h_single_point
+            h_single_point: generate_parameter.h_single_point
         };
 
         verify_parameter.verify();

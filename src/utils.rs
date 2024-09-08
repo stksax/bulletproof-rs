@@ -23,26 +23,26 @@ pub fn inner_product(
 }
 
 pub fn constract_lr_poly(
-    y: pallas::Scalar,
-    z: pallas::Scalar,
-    al: Vec<pallas::Scalar>,
-    ar: Vec<pallas::Scalar>,
-    sl: Vec<pallas::Scalar>,
-    sr: Vec<pallas::Scalar>,
-) -> (Vec<[pallas::Scalar;2]>, Vec<[pallas::Scalar;2]>) {
-    let mut l_poly: Vec<[_; 2]> = Vec::new();
-    let mut r_poly: Vec<[_; 2]> = Vec::new();
+    y: &pallas::Scalar,
+    z: &pallas::Scalar,
+    al: &Vec<pallas::Scalar>,
+    ar: &Vec<pallas::Scalar>,
+    sl: &Vec<pallas::Scalar>,
+    sr: &Vec<pallas::Scalar>,
+) -> (Vec<[pallas::Scalar; 2]>, Vec<[pallas::Scalar; 2]>) {
+    let mut l_poly: Vec<[pallas::Scalar; 2]> = Vec::with_capacity(al.len());
+    let mut r_poly: Vec<[pallas::Scalar; 2]> = Vec::with_capacity(ar.len());
 
     let two = pallas::Scalar::from_u128(2);
     let mut exp_2 = pallas::Scalar::one();
     let mut exp_y = pallas::Scalar::one();
-    for i in 0..al.len(){
-        l_poly.push([&al[i] - z, sl[i]]);
-        r_poly.push(
-            [
-            exp_y * (ar[i] + z) +  z * z * exp_2,
-            exp_y * sr[i]
-            ]);
+
+    for i in 0..al.len() {
+        l_poly.push([al[i] - *z, sl[i]]);
+        r_poly.push([
+            exp_y * (ar[i] + *z) + z * z * exp_2,
+            exp_y * sr[i],
+        ]);
 
         exp_2 = exp_2 * two;
         exp_y = exp_y * y;
@@ -50,6 +50,7 @@ pub fn constract_lr_poly(
 
     (l_poly, r_poly)
 }
+
 
 pub fn inner_product_add (poly1: Vec<pallas::Scalar>, poly2: Vec<pallas::Scalar>) -> pallas::Scalar {
     assert_eq!(poly1.len(), poly2.len(),"poly's len unequal");

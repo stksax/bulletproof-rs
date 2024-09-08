@@ -39,15 +39,27 @@ pub fn to_binary_vec(num: u128, len: usize) -> Vec<pallas::Scalar> {
     out
 }
 
-pub fn to_inverse_vec(num: Vec<pallas::Scalar>, len: usize) -> Vec<pallas::Scalar> {
-    let mut out = Vec::new();
+// pub fn to_inverse_vec(num: Vec<pallas::Scalar>, len: usize) -> Vec<pallas::Scalar> {
+//     let mut out = Vec::new();
+//     let one = pallas::Scalar::one();
+//     for i in 0..len {
+//         out.push(num[i] - one);
+//     }
+
+//     out
+// }
+
+pub fn to_inverse_vec(num: &Vec<pallas::Scalar>, len: usize) -> Vec<pallas::Scalar> {
     let one = pallas::Scalar::one();
-    for i in 0..len {
-        out.push(num[i] - one);
+    let mut out = num.clone(); 
+
+    for i in &mut out[..len] {
+        *i = *i - one; 
     }
 
     out
 }
+
 
 pub fn constract_ecc_vec(num: u128, len: usize) -> Vec<pallas::Point> {
     let mut out = Vec::new();
